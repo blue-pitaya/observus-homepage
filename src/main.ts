@@ -1,70 +1,122 @@
-import { src } from "observus/attributes";
-import { a, code, div, h1, h2, img, p, pre } from "observus/tags";
-import logo from "/logo.svg";
-import { attr, mount, text } from "observus";
+import {
+  createState,
+  State,
+  Signal,
+  text,
+  tag,
+  on,
+  attr,
+  tagSignal,
+  mount,
+} from "observus";
 import "./style.css";
-import { styleObj } from "observus/attributes";
-import { cls } from "observus/attributes";
-import { style } from "observus/attributes";
+import { TextInputExample } from "./textInputExample";
+import { TodoList } from "./todoListExample";
 
-function BodySection() {
-  return div(
-    styleObj({
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "left",
-      marginTop: "48px",
-    }),
-    h2(text("Getting started")),
-    p(text("You can install observus by running:")),
-    pre(cls("code-block"), code(text("pnpm add observus"))),
-    p(
-      text(
-        "Documentation will be added soon. Meanwhile you can read source code ",
-      ),
-      a(
-        attr(
-          "href",
-          "https://github.com/blue-pitaya/observus/blob/master/src/observus-core.ts",
-        ),
-        text("here"),
-      ),
-      text(
-        ". Core library is only about 500 lines of code without any tricks to minify it.",
-      ),
-    ),
-    h2(text("Inspirations"), style("margin-top: 60px;")),
-    p(text("Laminar (scala.js lib), grecha.js"))
-  );
-}
+function Example() {
+  const verbs: Array<string> = ["watching", "observing", "seeing"];
+  const verbIdx: State<number> = createState(0);
+  const message: Signal<string> = verbIdx.map((i) => `I'm ${verbs[i]} you.`);
 
-function LogoSection() {
-  return div(
-    styleObj({
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-    }),
-    img(
-      src(logo),
-      styleObj({
-        width: "140px",
+  return tag(
+    "div",
+    tag("p", text("There will be observus mini logo")),
+    tag("p", text(message)),
+    tag(
+      "button",
+      text("Look at me more!"),
+      on("click", () => {
+        verbIdx.update((i) => (i + 1 >= verbs.length ? 0 : i + 1));
       }),
     ),
-    h1(text("OBSERVUS")),
-    p(text("Simple and minimal reactive UI library for web.")),
   );
 }
 
-function MainPage() {
-  return div(
-    styleObj({
-      display: "flex",
-      flexDirection: "column",
-    }),
-    LogoSection(),
-    BodySection(),
+const Stopwatch = () => {
+  const elapsed = createState(0);
+
+  let intervalId: number | null = null;
+  const start = () => {
+    if (intervalId === null) {
+      intervalId = setInterval(() => {
+        elapsed.update((v) => v + 0.1);
+      }, 100);
+    }
+  };
+  const stop = () => {
+    if (intervalId !== null) {
+      clearInterval(intervalId);
+      intervalId = null;
+    }
+  };
+  const reset = () => {
+    stop();
+    elapsed.update(() => 0);
+  };
+
+  return tag(
+    "div",
+    tag(
+      "pre",
+      attr("style", "display: inline;"),
+      text(elapsed.map((s) => `${s.toFixed(1)} seconds`)),
+    ),
+    tag("button", text("Start"), on("click", start)),
+    tag("button", text("Stop"), on("click", stop)),
+    tag("button", text("Reset"), on("click", reset)),
+  );
+};
+
+function ViewToggle1() {
+  const count = createState(0);
+  const view1 = tag(
+    "span",
+    attr("style", "color: red;"),
+    text(count.map((x) => x.toString())),
+  );
+  const view2 = tag(
+    "span",
+    attr("style", "color: blue;"),
+    text(count.map((x) => x.toString())),
+  );
+
+  const showView1 = createState(true);
+  const currentView = showView1.map((v) => (v ? view1 : view2));
+
+  return tag(
+    "div",
+    tagSignal(currentView),
+    tag(
+      "button",
+      text("Switch view"),
+      on("click", () => {
+        showView1.update((v) => !v);
+      }),
+    ),
+    tag(
+      "button",
+      text("Increment counter"),
+      on("click", () => {
+        count.update((x) => x + 1);
+        console.log(count.observers.length); //TODO: counter links are not cleared
+      }),
+    ),
   );
 }
 
-mount(document.querySelector("#app")!, MainPage());
+//TODO: view toggle using hidden prop (safer?)
+
+function App() {
+  return tag(
+    "div",
+    attr("style", "display: flex; flex-direction: column; gap: 24px;"),
+    Example(),
+    Stopwatch(),
+    ViewToggle1(),
+    tag("h3", text("Todo lists")),
+    TodoList(),
+    TextInputExample(),
+  );
+}
+
+mount(document.getElementById("examples")!, App());

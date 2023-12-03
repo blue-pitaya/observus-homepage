@@ -1,0 +1,23 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+sub build_template {
+  my $in_path = shift @ARGV or die;
+  my $out_path = shift @ARGV or die;
+  my %insertions = shift @ARGV or die;
+
+  open my $in, '<', $in_path or die;
+  open my $out, '>', $out_path or die;
+
+  my $template = do { local $/; <$in> };
+  $template =~ s/\{\{\s(\w+)\s\}\}/$insertions{$1}/g;
+  print $out $template;
+
+  close $out;
+  close $in;
+}
+
+my %index = ();
+build_template('index.template.html', 'index.html', %index);
